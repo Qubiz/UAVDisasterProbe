@@ -13,23 +13,18 @@ import com.google.android.gms.maps.model.Polygon;
 import com.google.android.gms.maps.model.PolygonOptions;
 
 import java.util.ArrayList;
+import java.util.List;
 
 public class ResizableRectangle implements GoogleMap.OnMarkerDragListener {
 
     private GoogleMap googleMap;
-
     private Polygon rectangle;
     private ArrayList<Marker> cornerMarkers;
-
     private LatLng centerPoint;
-    private double width;
-    private double height;
 
     public ResizableRectangle(GoogleMap googleMap, LatLng centerPoint, double width, double height) {
         this.googleMap = googleMap;
         this.centerPoint = centerPoint;
-        this.width = width;
-        this.height = height;
 
         rectangle = createRectangle(centerPoint, width, height);
         cornerMarkers = createCornerMarkers(rectangle);
@@ -68,6 +63,36 @@ public class ResizableRectangle implements GoogleMap.OnMarkerDragListener {
         return markers;
     }
 
+    public List<LatLng> getCornerCoordinates() {
+        return rectangle.getPoints();
+    }
+
+    public LatLng getCenterPoint() {
+        return centerPoint;
+    }
+
+    public void zoomTo(boolean animate) {
+        LatLngBounds.Builder builder = new LatLngBounds.Builder();
+        for(Marker marker : cornerMarkers) {
+            builder.include(marker.getPosition());
+        }
+
+        CameraUpdate cameraUpdate = CameraUpdateFactory.newLatLngBounds(builder.build(), 150);
+
+        if (animate) {
+            googleMap.animateCamera(cameraUpdate);
+        } else {
+            googleMap.moveCamera(cameraUpdate);
+        }
+    }
+
+    public void remove() {
+        rectangle.remove();
+        for(Marker marker : cornerMarkers) {
+            marker.remove();
+        }
+    }
+
     @Override
     public void onMarkerDragStart(Marker marker) {
 
@@ -100,39 +125,5 @@ public class ResizableRectangle implements GoogleMap.OnMarkerDragListener {
     @Override
     public void onMarkerDragEnd(Marker marker) {
 
-    }
-
-    public LatLng getCenterPoint() {
-        return centerPoint;
-    }
-
-    public double getWidth() {
-        return width;
-    }
-
-    public double getHeight() {
-        return height;
-    }
-
-    public void zoomTo(boolean animate) {
-        LatLngBounds.Builder builder = new LatLngBounds.Builder();
-        for(Marker marker : cornerMarkers) {
-            builder.include(marker.getPosition());
-        }
-
-        CameraUpdate cameraUpdate = CameraUpdateFactory.newLatLngBounds(builder.build(), 150);
-
-        if (animate) {
-            googleMap.animateCamera(cameraUpdate);
-        } else {
-            googleMap.moveCamera(cameraUpdate);
-        }
-    }
-
-    public void remove() {
-        rectangle.remove();
-        for(Marker marker : cornerMarkers) {
-            marker.remove();
-        }
     }
 }
