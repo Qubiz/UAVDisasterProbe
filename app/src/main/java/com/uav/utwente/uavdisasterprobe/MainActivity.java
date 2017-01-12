@@ -5,14 +5,21 @@ import android.os.Build;
 import android.support.v4.app.ActivityCompat;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
+import android.view.View;
+import android.widget.Button;
 
 import com.google.android.gms.maps.GoogleMap;
 import com.google.android.gms.maps.OnMapReadyCallback;
 import com.google.android.gms.maps.SupportMapFragment;
 import com.google.android.gms.maps.model.LatLng;
-import com.google.android.gms.maps.model.MarkerOptions;
 
-public class MainActivity extends AppCompatActivity implements OnMapReadyCallback {
+public class MainActivity extends AppCompatActivity implements OnMapReadyCallback, GoogleMap.OnMapClickListener {
+
+    private GoogleMap googleMap;
+
+    private ResizableRectangle rectangle;
+
+    private Button setButton;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -38,10 +45,31 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
         SupportMapFragment mapFragment = (SupportMapFragment) getSupportFragmentManager().findFragmentById(R.id.map);
         mapFragment.getMapAsync(this);
 
+        setButton = (Button) findViewById(R.id.set_reset_button);
+        setButton.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                if(rectangle != null) {
+                    rectangle.zoomTo(true);
+                }
+            }
+        });
+
     }
 
     @Override
     public void onMapReady(GoogleMap googleMap) {
-        googleMap.addMarker(new MarkerOptions().position(new LatLng(0, 0)).title("Marker"));
+        if(this.googleMap == null) {
+            this.googleMap = googleMap;
+        }
+
+        googleMap.setOnMapClickListener(this);
+    }
+
+    @Override
+    public void onMapClick(LatLng point) {
+        if(rectangle != null) rectangle.remove();
+
+        rectangle = new ResizableRectangle(googleMap, point, 0.5, 0.5);
     }
 }
