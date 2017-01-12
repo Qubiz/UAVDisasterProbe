@@ -44,6 +44,8 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
     private Boolean setSquare = false;
     private float distanceBorder = 5; // in meters
 
+    private ResizableRectangle rectangle;
+
 
 
     @Override
@@ -77,6 +79,15 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
     }
 
     public void onMapClick(final LatLng point) {
+        if(rectangle != null) {
+            rectangle.remove();
+        }
+
+        rectangle = new ResizableRectangle(gMap, point, 0.01, 0.01);
+        rectangle.zoomTo(true);
+        rectangle.getCornerCoordinates()
+
+
         if(setSquare) {
             square.remove();
             poliline.remove();
