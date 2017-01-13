@@ -100,7 +100,6 @@ public class ResizableRectangle implements GoogleMap.OnMarkerDragListener {
 
     @Override
     public void onMarkerDrag(Marker marker) {
-        Log.d("onMarkerDrag", marker.getId());
         if (cornerMarkers.get(0).getId().equals(marker.getId())) {
             cornerMarkers.get(1).setPosition(new LatLng(marker.getPosition().latitude, cornerMarkers.get(1).getPosition().longitude));
             cornerMarkers.get(3).setPosition(new LatLng(cornerMarkers.get(3).getPosition().latitude, marker.getPosition().longitude));
