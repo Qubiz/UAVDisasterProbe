@@ -1,19 +1,25 @@
 package com.uav.utwente.uavdisasterprobe;
 
 import android.Manifest;
+import android.content.Context;
+import android.content.DialogInterface;
 import android.content.pm.PackageManager;
+import android.location.Criteria;
+import android.location.Location;
+import android.location.LocationManager;
 import android.os.Build;
 import android.support.annotation.NonNull;
 import android.support.v4.app.ActivityCompat;
 import android.support.v4.content.ContextCompat;
+import android.support.v7.app.AlertDialog;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
+import android.util.Log;
 import android.view.View;
 import android.widget.Button;
-import android.widget.Toast;
 
+import com.google.android.gms.maps.CameraUpdateFactory;
 import com.google.android.gms.maps.GoogleMap;
-import com.google.android.gms.maps.GoogleMapOptions;
 import com.google.android.gms.maps.OnMapReadyCallback;
 import com.google.android.gms.maps.SupportMapFragment;
 import com.google.android.gms.maps.model.LatLng;
@@ -22,14 +28,14 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
         GoogleMap.OnMapClickListener, GoogleMap.OnMyLocationButtonClickListener {
 
     private static final int LOCATION_PERMISSION_REQUEST_CODE = 1;
-
+    private static final CharSequence[] MAP_TYPE_ITEMS = {"Normal", "Satellite", "Terrain", "Hybrid"};
     private boolean permissionDenied = false;
-
     private GoogleMap googleMap;
-
     private ResizableRectangle rectangle;
+    private Button mapTypesButton;
 
-    private Button setButton;
+    private LocationManager locationManager;
+
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -52,24 +58,24 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
 
         setContentView(R.layout.activity_main);
 
-        SupportMapFragment mapFragment = (SupportMapFragment) getSupportFragmentManager().findFragmentById(R.id.map);
-        mapFragment.getMapAsync(this);
-
-        setButton = (Button) findViewById(R.id.set_reset_button);
-        setButton.setOnClickListener(new View.OnClickListener() {
+        mapTypesButton = (Button) findViewById(R.id.map_types_button);
+        mapTypesButton.setOnClickListener(new View.OnClickListener() {
             @Override
-            public void onClick(View v) {
-                if(rectangle != null) {
-                    rectangle.zoomTo(true);
-                }
+            public void onClick(View view) {
+                showMapTypeSelectorDialog();
             }
         });
 
+        mapTypesButton.setText(MAP_TYPE_ITEMS[3]);
+
+        /* Set-up map fragment */
+        SupportMapFragment mapFragment = (SupportMapFragment) getSupportFragmentManager().findFragmentById(R.id.map);
+        mapFragment.getMapAsync(this);
     }
 
     @Override
     public void onMapReady(GoogleMap googleMap) {
-        if(this.googleMap == null) {
+        if (this.googleMap == null) {
             this.googleMap = googleMap;
         }
 
@@ -79,6 +85,8 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
         googleMap.getUiSettings().setZoomControlsEnabled(true);
 
         enableMyLocation();
+
+
     }
 
     @Override
@@ -100,11 +108,22 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
         } else if (googleMap != null) {
             // Access to the location has been granted to the app.
             googleMap.setMyLocationEnabled(true);
+
+            // Zoom to current location
+            locationManager = (LocationManager) getSystemService(Context.LOCATION_SERVICE);
+            Criteria criteria = new Criteria();
+            String provider = locationManager.getBestProvider(criteria, false);
+            Location location = locationManager.getLastKnownLocation(provider);
+            if(location != null) {
+                LatLng latLngLocation = new LatLng(location.getLatitude(), location.getLongitude());
+                googleMap.moveCamera(CameraUpdateFactory.newLatLngZoom(latLngLocation, 16.0f));
+            }
         }
     }
 
     @Override
     public boolean onMyLocationButtonClick() {
+        Log.d("onMyLocationButtonClick", "CLICK");
         // Return false so that we don't consume the event and the default behavior still occurs
         // (the camera animates to the user's current position).
         return false;
@@ -143,5 +162,39 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
     private void showMissingPermissionError() {
         PermissionUtils.PermissionDeniedDialog
                 .newInstance(true).show(getSupportFragmentManager(), "dialog");
+    }
+
+    private void showMapTypeSelectorDialog() {
+        AlertDialog.Builder builder = new AlertDialog.Builder(this);
+        builder.setTitle("SELECT MAP TYPE");
+
+        int checkItem = googleMap.getMapType() - 1;
+
+        builder.setSingleChoiceItems(MAP_TYPE_ITEMS, checkItem, new DialogInterface.OnClickListener() {
+            @Override
+            public void onClick(DialogInterface dialogInterface, int item) {
+                switch (item) {
+                    case 0:
+                        googleMap.setMapType(GoogleMap.MAP_TYPE_NORMAL);
+                        break;
+                    case 1:
+                        googleMap.setMapType(GoogleMap.MAP_TYPE_SATELLITE);
+                        break;
+                    case 2:
+                        googleMap.setMapType(GoogleMap.MAP_TYPE_TERRAIN);
+                        break;
+                    default:
+                        googleMap.setMapType(GoogleMap.MAP_TYPE_HYBRID);
+                        break;
+                }
+
+                mapTypesButton.setText(MAP_TYPE_ITEMS[item]);
+                dialogInterface.dismiss();
+            }
+        });
+
+        AlertDialog dialog = builder.create();
+        dialog.setCanceledOnTouchOutside(true);
+        dialog.show();
     }
 }
