@@ -4,6 +4,14 @@
         "source": "D:\\Mathijs\\AndroidStudioProjects\\UAVDisasterProbe\\dJISDKLIB\\build\\intermediates\\bundles\\debug\\res\\layout\\dialog_login.xml"
     },
     {
+        "merged": "D:\\Mathijs\\AndroidStudioProjects\\UAVWaypointFlight\\dJISDKLIB\\build\\intermediates\\res\\merged\\androidTest\\debug\\layout\\dialog_login.xml",
+        "source": "D:\\Mathijs\\AndroidStudioProjects\\UAVWaypointFlight\\dJISDKLIB\\build\\intermediates\\bundles\\debug\\res\\layout\\dialog_login.xml"
+    },
+    {
+        "merged": "D:\\Mathijs\\AndroidStudioProjects\\UAVWaypointFlight\\dJISDKLIB\\build\\intermediates\\res\\merged\\androidTest\\debug\\layout\\log_dialog_view.xml",
+        "source": "D:\\Mathijs\\AndroidStudioProjects\\UAVWaypointFlight\\dJISDKLIB\\build\\intermediates\\bundles\\debug\\res\\layout\\log_dialog_view.xml"
+    },
+    {
         "merged": "D:\\Mathijs\\AndroidStudioProjects\\UAVDisasterProbe\\dJISDKLIB\\build\\intermediates\\res\\merged\\androidTest\\debug\\layout\\log_dialog_view.xml",
         "source": "D:\\Mathijs\\AndroidStudioProjects\\UAVDisasterProbe\\dJISDKLIB\\build\\intermediates\\bundles\\debug\\res\\layout\\log_dialog_view.xml"
     }

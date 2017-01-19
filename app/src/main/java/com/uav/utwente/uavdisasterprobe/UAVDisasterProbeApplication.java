@@ -5,6 +5,7 @@ import android.content.Context;
 import android.content.Intent;
 import android.os.Handler;
 import android.os.Looper;
+import android.support.multidex.MultiDex;
 import android.util.Log;
 import android.widget.Toast;
 
@@ -46,6 +47,7 @@ public class UAVDisasterProbeApplication extends Application {
 
     protected void attachBaseContext(Context base){
         super.attachBaseContext(base);
+        MultiDex.install(base);
     }
 
     private DJISDKManager.DJISDKManagerCallback mDJISDKManagerCallback = new DJISDKManager.DJISDKManagerCallback() {

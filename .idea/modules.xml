@@ -2,11 +2,8 @@
 <project version="4">
   <component name="ProjectModuleManager">
     <modules>
-      <module fileurl="file://$PROJECT_DIR$/UAVDisasterProbe.iml" filepath="$PROJECT_DIR$/UAVDisasterProbe.iml" />
-      <module fileurl="file://$PROJECT_DIR$/UAVDisasterProbe.iml" filepath="$PROJECT_DIR$/UAVDisasterProbe.iml" />
+      <module fileurl="file://$PROJECT_DIR$/UAVWaypointFlight.iml" filepath="$PROJECT_DIR$/UAVWaypointFlight.iml" />
       <module fileurl="file://$PROJECT_DIR$/app/app.iml" filepath="$PROJECT_DIR$/app/app.iml" />
-      <module fileurl="file://$PROJECT_DIR$/app/app.iml" filepath="$PROJECT_DIR$/app/app.iml" />
-      <module fileurl="file://$PROJECT_DIR$/dJISDKLIB/dJISDKLIB.iml" filepath="$PROJECT_DIR$/dJISDKLIB/dJISDKLIB.iml" />
       <module fileurl="file://$PROJECT_DIR$/dJISDKLIB/dJISDKLIB.iml" filepath="$PROJECT_DIR$/dJISDKLIB/dJISDKLIB.iml" />
     </modules>
   </component>
