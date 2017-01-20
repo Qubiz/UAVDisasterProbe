@@ -7,6 +7,7 @@ import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.IntentFilter;
 import android.os.Build;
+import android.os.Looper;
 import android.support.v4.app.ActivityCompat;
 import android.support.v7.app.AlertDialog;
 import android.support.v7.app.AppCompatActivity;
@@ -14,6 +15,7 @@ import android.os.Bundle;
 import android.util.Log;
 import android.view.View;
 import android.widget.Button;
+import android.widget.TextView;
 import android.widget.Toast;
 
 import com.google.android.gms.maps.GoogleMap;
@@ -27,16 +29,20 @@ import com.google.android.gms.maps.model.Marker;
 import com.google.android.gms.maps.model.MarkerOptions;
 import com.opencsv.CSVReader;
 
+import org.w3c.dom.Text;
+
 import java.io.File;
 import java.io.FileReader;
 import java.io.IOException;
 
 import dji.common.error.DJIError;
 import dji.common.flightcontroller.DJIFlightControllerCurrentState;
+import dji.common.flightcontroller.DJISimulatorStateData;
 import dji.common.util.DJICommonCallbacks;
 import dji.sdk.base.DJIBaseProduct;
 import dji.sdk.flightcontroller.DJIFlightController;
 import dji.sdk.flightcontroller.DJIFlightControllerDelegate;
+import dji.sdk.flightcontroller.DJISimulator;
 import dji.sdk.missionmanager.DJIMission;
 import dji.sdk.missionmanager.DJIMissionManager;
 import dji.sdk.missionmanager.DJIWaypointMission;
@@ -50,6 +56,9 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
 
     private Button loadWaypointsButton;
     private Button mapTypesButton;
+    private Button startFlightButton;
+
+    private TextView productConnectedTextView;
 
     private DJIFlightController flightController;
     private DJIMissionManager missionManager;
@@ -110,21 +119,59 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
         });
         mapTypesButton.setText(MAP_TYPE_ITEMS[1]);
 
+        startFlightButton = (Button) findViewById(R.id.start_flight_button);
+        startFlightButton.setText("START");
+        startFlightButton.setEnabled(false);
+        startFlightButton.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                flightPath.startMission(missionManager);
+            }
+        });
 
+        productConnectedTextView = (TextView) findViewById(R.id.product_connected_textview);
+    }
+
+    private void updateConnectedTextView() {
+        if(productConnectedTextView == null) return;
+
+        boolean ret = false;
+        DJIBaseProduct product = UAVDisasterProbeApplication.getProductInstance();
+
+        if(product != null) {
+            if(product.isConnected()) {
+                productConnectedTextView.setText(UAVDisasterProbeApplication.getProductInstance().getModel() + " connected...");
+                ret = true;
+            } else {
+                if(product instanceof DJIAircraft) {
+                    DJIAircraft aircraft = (DJIAircraft) product;
+                    if(aircraft.getRemoteController() != null && aircraft.getRemoteController().isConnected()) {
+                        productConnectedTextView.setText("Only the RC is connected...");
+                        ret = true;
+                    }
+                }
+            }
+        }
+
+        if(!ret) {
+            productConnectedTextView.setText("Disconnected...");
+        }
     }
 
     protected BroadcastReceiver receiver = new BroadcastReceiver() {
         @Override
         public void onReceive(Context context, Intent intent) {
             initiateFlightController();
+            updateConnectedTextView();
         }
     };
 
     @Override
     protected void onResume() {
+        super.onResume();
         initiateFlightController();
         initiateMissionManager();
-        super.onResume();
+        updateConnectedTextView();
     }
 
     @Override
@@ -149,7 +196,23 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
     }
 
     private void initiateFlightController() {
-        DJIBaseProduct product = UAVDisasterProbeApplication.getProductInstance();
+        DJIAircraft aircraft = UAVDisasterProbeApplication.getAircraftInstance();
+        if (aircraft == null || !aircraft.isConnected()) {
+            setResultToToast("Disconnected");
+            flightController = null;
+            return;
+        } else {
+            flightController = aircraft.getFlightController();
+            flightController.getSimulator().setUpdatedSimulatorStateDataCallback(new DJISimulator.UpdatedSimulatorStateDataCallback() {
+                @Override
+                public void onSimulatorDataUpdated(final DJISimulatorStateData djiSimulatorStateData) {
+                    droneLocationLatitude = djiSimulatorStateData.getLatitude();
+                    droneLocationLongitude = djiSimulatorStateData.getLongitude();
+                    updateDroneLocation();
+                }
+            });
+        }
+        /*DJIBaseProduct product = UAVDisasterProbeApplication.getProductInstance();
         if(product != null && product.isConnected()) {
             if(product instanceof DJIAircraft) {
                 flightController = ((DJIAircraft) product).getFlightController();
@@ -165,7 +228,7 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
                     updateDroneLocation();
                 }
             });
-        }
+        }*/
     }
 
     private void initiateMissionManager() {
@@ -219,11 +282,14 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
                 if(flightPath != null) {
                     flightPath.removeFromMap();
                 }
-                flightPath = new FlightPath(waypointFile);
+                flightPath = new FlightPath(this, waypointFile);
                 flightPath.showOnMap(googleMap);
-                setResultToToast("Loaded file: " + waypointFile.getName());
 
-                flightPath.startMission(missionManager);
+                DJIBaseProduct product = UAVDisasterProbeApplication.getProductInstance();
+                if(product != null && product.isConnected()) {
+                    startFlightButton.setEnabled(true);
+                }
+                setResultToToast("Loaded file: " + waypointFile.getName());
             } catch (IOException e) {
                 e.printStackTrace();
             }

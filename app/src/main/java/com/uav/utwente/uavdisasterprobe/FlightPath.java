@@ -1,7 +1,9 @@
 package com.uav.utwente.uavdisasterprobe;
 
+import android.content.Context;
 import android.graphics.Color;
 import android.util.Log;
+import android.widget.Toast;
 
 import com.google.android.gms.maps.CameraUpdateFactory;
 import com.google.android.gms.maps.GoogleMap;
@@ -34,7 +36,9 @@ public class FlightPath {
 
     private DJIWaypointMission waypointMission;
 
-    public FlightPath(File waypointFile) throws IOException {
+    private Context context;
+
+    public FlightPath(Context context, File waypointFile) throws IOException {
         waypointMission = new DJIWaypointMission();
         readFromFile(waypointFile);
     }
@@ -172,12 +176,12 @@ public class FlightPath {
 
     public void startMission(DJIMissionManager missionManager) {
         prepareMission(missionManager);
-
+        Toast.makeText(context, "startMission() " + (missionManager != null), Toast.LENGTH_SHORT).show();
         if(missionManager != null) {
             missionManager.startMissionExecution(new DJICommonCallbacks.DJICompletionCallback() {
                 @Override
                 public void onResult(DJIError error) {
-
+                    Toast.makeText(context, error.getDescription(), Toast.LENGTH_SHORT).show();
                 }
             });
         }
