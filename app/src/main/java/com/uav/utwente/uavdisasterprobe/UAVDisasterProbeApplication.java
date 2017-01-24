@@ -13,6 +13,7 @@ import dji.common.error.DJIError;
 import dji.common.error.DJISDKError;
 import dji.sdk.base.DJIBaseComponent;
 import dji.sdk.base.DJIBaseProduct;
+import dji.sdk.products.DJIAircraft;
 import dji.sdk.sdkmanager.DJISDKManager;
 
 /**
@@ -28,6 +29,15 @@ public class UAVDisasterProbeApplication extends Application {
     private static DJIBaseProduct product;
 
     private Handler handler;
+
+    public static boolean isAircraftConnected() {
+        return getProductInstance() != null && getProductInstance() instanceof DJIAircraft;
+    }
+
+    public static synchronized DJIAircraft getAircraftInstance() {
+        if (!isAircraftConnected()) return null;
+        return (DJIAircraft) getProductInstance();
+    }
 
     public static synchronized DJIBaseProduct getProductInstance() {
         if (null == product) {
@@ -55,10 +65,12 @@ public class UAVDisasterProbeApplication extends Application {
         @Override
         public void onGetRegisteredResult(DJIError error) {
 
+            Handler handler = new Handler(Looper.getMainLooper());
+
             Log.d(TAG, error == null ? "success" : error.getDescription());
             if(error == DJISDKError.REGISTRATION_SUCCESS) {
                 DJISDKManager.getInstance().startConnectionToProduct();
-                Handler handler = new Handler(Looper.getMainLooper());
+
                 handler.post(new Runnable() {
 
                     @Override
@@ -69,7 +81,6 @@ public class UAVDisasterProbeApplication extends Application {
                 Log.d(TAG, "Register success");
 
             } else {
-                Handler handler = new Handler(Looper.getMainLooper());
                 handler.post(new Runnable() {
 
                     @Override
@@ -86,7 +97,7 @@ public class UAVDisasterProbeApplication extends Application {
 
         @Override
         public void onProductChanged(DJIBaseProduct oldProduct, DJIBaseProduct newProduct) {
-
+            Log.v(TAG, String.format("onProductChanged oldProduct:%s, newProduct:%s", oldProduct, newProduct));
             product = newProduct;
             if(product != null) {
                 product.setDJIBaseProductListener(mDJIBaseProductListener);
@@ -103,11 +114,15 @@ public class UAVDisasterProbeApplication extends Application {
             if(newComponent != null) {
                 newComponent.setDJIComponentListener(mDJIComponentListener);
             }
+            Log.v(TAG, String.format("onComponentChange key:%s, oldComponent:%s, newComponent:%s", key, oldComponent, newComponent));
+
             notifyStatusChange();
         }
 
         @Override
         public void onProductConnectivityChanged(boolean isConnected) {
+            Log.v(TAG, "onProductConnectivityChanged: " + isConnected);
+
             notifyStatusChange();
         }
 

@@ -33,10 +33,18 @@ public class FlightPath {
     private ArrayList<Marker> markers;
     private Polyline path;
 
+    private ArrayList<DJIWaypoint> waypointsList;
+
     private DJIWaypointMission waypointMission;
 
+    private File waypointFile;
+
     public FlightPath(File waypointFile) throws IOException {
+        this.waypointFile = waypointFile;
+        waypointsList = new ArrayList<>();
         waypointMission = new DJIWaypointMission();
+        waypointMission.finishedAction = DJIWaypointMission.DJIWaypointMissionFinishedAction.GoHome;
+        waypointMission.headingMode = DJIWaypointMission.DJIWaypointMissionHeadingMode.Auto;
         readFromFile(waypointFile);
     }
 
@@ -62,7 +70,10 @@ public class FlightPath {
                             altitude = Float.parseFloat(entry[2]);
 
                             DJIWaypoint waypoint = new DJIWaypoint(latitude, longitude, altitude);
-                            waypointMission.addWaypoint(waypoint);
+                            waypoint.addAction(new DJIWaypoint.DJIWaypointAction(DJIWaypoint.DJIWaypointActionType.GimbalPitch, -90));
+                            waypoint.addAction(new DJIWaypoint.DJIWaypointAction(DJIWaypoint.DJIWaypointActionType.StartTakePhoto, 0));
+
+                            waypointsList.add(waypoint);
                         } catch (NumberFormatException e) {
                             e.printStackTrace();
                         }
@@ -78,8 +89,8 @@ public class FlightPath {
     }
 
     public void showOnMap(GoogleMap googleMap) {
-        createWaypoints(waypointMission.waypointsList, googleMap);
-        createPolylinePath(waypointMission.waypointsList, googleMap);
+        createWaypoints(waypointsList, googleMap);
+        createPolylinePath(waypointsList, googleMap);
 
         zoomTo(googleMap);
     }
@@ -147,7 +158,7 @@ public class FlightPath {
 
             polylineOptions.add(latLngBegin, latLngEnd);
             polylineOptions.width(5);
-            polylineOptions.color(Color.WHITE);
+            polylineOptions.color(Color.RED);
         }
 
         path = googleMap.addPolyline(polylineOptions);
@@ -172,13 +183,11 @@ public class FlightPath {
     }
 
     public void startMission(DJIMissionManager missionManager) {
-        prepareMission(missionManager);
-
         if(missionManager != null) {
             missionManager.startMissionExecution(new DJICommonCallbacks.DJICompletionCallback() {
                 @Override
                 public void onResult(DJIError error) {
-
+                    Log.d("startMission", "onResult: " + (error == null ? "Succes!" : error.getDescription()));
                 }
             });
         }
@@ -189,26 +198,29 @@ public class FlightPath {
             missionManager.stopMissionExecution(new DJICommonCallbacks.DJICompletionCallback() {
                 @Override
                 public void onResult(DJIError error) {
-                    // TODO ...
+                    Log.d("stopMission", "onResult: " + (error == null ? "Succes!" : error.getDescription()));
                 }
             });
             waypointMission.removeAllWaypoints();
         }
     }
 
-    private void prepareMission(DJIMissionManager missionManager) {
+    public void prepareMission(DJIMissionManager missionManager) {
         if(missionManager != null && waypointMission != null) {
-            DJIMission.DJIMissionProgressHandler progressHandler = new DJIMission.DJIMissionProgressHandler() {
+            waypointMission.removeAllWaypoints();
+            waypointMission.addWaypoints(waypointsList);
+            final DJIMission.DJIMissionProgressHandler progressHandler = new DJIMission.DJIMissionProgressHandler() {
                 @Override
                 public void onProgress(DJIMission.DJIProgressType type, float progress) {
-                    // TODO ...
+                   Log.d("prepareMission", "onProgress (" + type.name() + "): " + progress);
                 }
             };
 
             missionManager.prepareMission(waypointMission, progressHandler, new DJICommonCallbacks.DJICompletionCallback() {
                 @Override
                 public void onResult(DJIError error) {
-                    // TODO ...
+                    MainActivity.setStartFlightButtonEnabled((error == null));
+                    Log.d("prepareMission", "onResult: " + (error == null ? "Success!" : error.getDescription()));
                 }
             });
         }
