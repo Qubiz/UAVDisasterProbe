@@ -6,6 +6,7 @@ import android.content.Context;
 import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.IntentFilter;
+import android.graphics.Color;
 import android.os.Build;
 import android.os.Looper;
 import android.support.v4.app.ActivityCompat;
@@ -56,7 +57,9 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
 
     private Button loadWaypointsButton;
     private Button mapTypesButton;
-    private Button startFlightButton;
+    public static Button startFlightButton;
+    private static Button stopFlightButton;
+    private static Button prepareFlightButton;
 
     private TextView productConnectedTextView;
 
@@ -125,11 +128,44 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
         startFlightButton.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
+                setResultToToast("Starting flight..");
                 flightPath.startMission(missionManager);
+                stopFlightButton.setEnabled(true);
+                startFlightButton.setEnabled(false);
+                prepareFlightButton.setEnabled(false);
+            }
+        });
+
+        stopFlightButton = (Button) findViewById(R.id.stop_flight_button);
+        stopFlightButton.setText("STOP");
+        stopFlightButton.setEnabled(false);
+        stopFlightButton.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                setResultToToast("Stopping flight..");
+                flightPath.stopMission(missionManager);
+                stopFlightButton.setEnabled(false);
+                if(flightPath != null) {
+                    prepareFlightButton.setEnabled(true);
+                }
+            }
+        });
+
+        prepareFlightButton = (Button) findViewById(R.id.prepare_flight_button);
+        prepareFlightButton.setText("PREPARE");
+        prepareFlightButton.setEnabled(false);
+        prepareFlightButton.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                setResultToToast("Preparing flight..");
+                flightPath.prepareMission(missionManager);
+                startFlightButton.setEnabled(true);
+
             }
         });
 
         productConnectedTextView = (TextView) findViewById(R.id.product_connected_textview);
+        productConnectedTextView.setTextColor(Color.WHITE);
     }
 
     private void updateConnectedTextView() {
@@ -163,6 +199,7 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
         public void onReceive(Context context, Intent intent) {
             initiateFlightController();
             updateConnectedTextView();
+            updateButtons();
         }
     };
 
@@ -196,23 +233,7 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
     }
 
     private void initiateFlightController() {
-        DJIAircraft aircraft = UAVDisasterProbeApplication.getAircraftInstance();
-        if (aircraft == null || !aircraft.isConnected()) {
-            setResultToToast("Disconnected");
-            flightController = null;
-            return;
-        } else {
-            flightController = aircraft.getFlightController();
-            flightController.getSimulator().setUpdatedSimulatorStateDataCallback(new DJISimulator.UpdatedSimulatorStateDataCallback() {
-                @Override
-                public void onSimulatorDataUpdated(final DJISimulatorStateData djiSimulatorStateData) {
-                    droneLocationLatitude = djiSimulatorStateData.getLatitude();
-                    droneLocationLongitude = djiSimulatorStateData.getLongitude();
-                    updateDroneLocation();
-                }
-            });
-        }
-        /*DJIBaseProduct product = UAVDisasterProbeApplication.getProductInstance();
+        DJIBaseProduct product = UAVDisasterProbeApplication.getProductInstance();
         if(product != null && product.isConnected()) {
             if(product instanceof DJIAircraft) {
                 flightController = ((DJIAircraft) product).getFlightController();
@@ -225,10 +246,10 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
                 public void onResult(DJIFlightControllerCurrentState state) {
                     droneLocationLatitude = state.getAircraftLocation().getLatitude();
                     droneLocationLongitude = state.getAircraftLocation().getLongitude();
-                    updateDroneLocation();
+                    //updateDroneLocation();
                 }
             });
-        }*/
+        }
     }
 
     private void initiateMissionManager() {
@@ -239,12 +260,25 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
             missionManager.setMissionProgressStatusCallback(this);
             missionManager.setMissionExecutionFinishedCallback(this);
         } else {
-            setResultToToast("Product disconnected...");
+            setResultToToast("Product not connected...");
             missionManager = null;
             return;
         }
 
         waypointMission = new DJIWaypointMission();
+    }
+
+    private void updateButtons() {
+        DJIBaseProduct product = UAVDisasterProbeApplication.getProductInstance();
+        if(product != null && product.isConnected()) {
+            if(flightPath != null) {
+                prepareFlightButton.setEnabled(true);
+            }
+        } else {
+            prepareFlightButton.setEnabled(false);
+            startFlightButton.setEnabled(false);
+            stopFlightButton.setEnabled(false);
+        }
     }
 
     private void setResultToToast(final String string){
@@ -282,12 +316,12 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
                 if(flightPath != null) {
                     flightPath.removeFromMap();
                 }
-                flightPath = new FlightPath(this, waypointFile);
+                flightPath = new FlightPath(waypointFile);
                 flightPath.showOnMap(googleMap);
 
                 DJIBaseProduct product = UAVDisasterProbeApplication.getProductInstance();
                 if(product != null && product.isConnected()) {
-                    startFlightButton.setEnabled(true);
+                    prepareFlightButton.setEnabled(true);
                 }
                 setResultToToast("Loaded file: " + waypointFile.getName());
             } catch (IOException e) {
@@ -301,12 +335,13 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
 
         final MarkerOptions markerOptions = new MarkerOptions();
         markerOptions.position(position);
-        markerOptions.icon(BitmapDescriptorFactory.defaultMarker(BitmapDescriptorFactory.HUE_AZURE));
+        markerOptions.icon(BitmapDescriptorFactory.defaultMarker(BitmapDescriptorFactory.HUE_ORANGE));
         runOnUiThread(new Runnable() {
             @Override
             public void run() {
                 if(droneMarker != null) droneMarker.remove();
                 if(checkGPSCoordinates(droneLocationLatitude, droneLocationLongitude)) {
+                    Log.d("updateDroneLocation", "" + droneLocationLatitude + ", " + droneLocationLongitude);
                     droneMarker = googleMap.addMarker(markerOptions);
                 }
             }
@@ -316,6 +351,7 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
     private boolean checkGPSCoordinates(double latitude, double longitude) {
         return (latitude > -90 && latitude < 90 && longitude > -180 && longitude < 180) && (latitude != 0f && longitude != 0f);
     }
+
 
     private void showMapTypeSelectorDialog() {
         AlertDialog.Builder builder = new AlertDialog.Builder(this);
@@ -329,15 +365,19 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
                 switch (item) {
                     case 0:
                         googleMap.setMapType(GoogleMap.MAP_TYPE_NORMAL);
+                        productConnectedTextView.setTextColor(Color.BLACK);
                         break;
                     case 1:
                         googleMap.setMapType(GoogleMap.MAP_TYPE_SATELLITE);
+                        productConnectedTextView.setTextColor(Color.WHITE);
                         break;
                     case 2:
                         googleMap.setMapType(GoogleMap.MAP_TYPE_TERRAIN);
+                        productConnectedTextView.setTextColor(Color.BLACK);
                         break;
                     default:
                         googleMap.setMapType(GoogleMap.MAP_TYPE_HYBRID);
+                        productConnectedTextView.setTextColor(Color.WHITE);
                         break;
                 }
 
@@ -349,5 +389,17 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
         AlertDialog dialog = builder.create();
         dialog.setCanceledOnTouchOutside(true);
         dialog.show();
+    }
+
+    public static void setStartFlightButtonEnabled(boolean enabled) {
+        startFlightButton.setEnabled(enabled);
+    }
+
+    public static void setPrepareFlightButtonEnabled(boolean enabled) {
+        prepareFlightButton.setEnabled(enabled);
+    }
+
+    public static void setStopFlightButtonEnabled(boolean enabled) {
+        prepareFlightButton.setEnabled(enabled);
     }
 }
