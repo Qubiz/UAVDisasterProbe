@@ -1,8 +1,15 @@
 package com.uav.utwente.uavdisasterprobe;
 
+import android.app.AlertDialog;
 import android.content.Context;
+import android.content.DialogInterface;
 import android.graphics.Color;
+import android.graphics.Typeface;
 import android.util.Log;
+import android.view.Gravity;
+import android.view.View;
+import android.widget.LinearLayout;
+import android.widget.TextView;
 
 import com.google.android.gms.maps.CameraUpdateFactory;
 import com.google.android.gms.maps.GoogleMap;
@@ -39,7 +46,10 @@ public class FlightPath {
 
     private File waypointFile;
 
-    public FlightPath(File waypointFile) throws IOException {
+    private MainActivity mainActivity;
+
+    public FlightPath(MainActivity mainActivity, File waypointFile) throws IOException {
+        this.mainActivity = mainActivity;
         this.waypointFile = waypointFile;
         waypointsList = new ArrayList<>();
         waypointMission = new DJIWaypointMission();
@@ -54,26 +64,45 @@ public class FlightPath {
         double latitude;
         double longitude;
         float altitude;
+        int pitch;
+        int yaw;
 
         int count = 0;
 
         List<String[]> entries = reader.readAll();
 
-        if(entries.get(0)[0].substring(1).equals("latitude") && entries.get(0)[1].equals("longitude") && entries.get(0)[2].equals("altitude")) {
+        if(entries.get(0)[0].substring(1).equals("latitude")
+                && entries.get(0)[1].equals("longitude")
+                && entries.get(0)[2].equals("altitude")
+                && entries.get(0)[3].equals("pitch")
+                && entries.get(0)[4].equals("yaw")) {
             Log.d("Header", "The header of the file is correct!");
             for(String[] entry : entries) {
                 if(count != 0) {
-                    if(entry.length == 3) {
+                    if(entry.length == 5) {
                         try {
                             latitude = Double.parseDouble(entry[0]);
                             longitude = Double.parseDouble(entry[1]);
                             altitude = Float.parseFloat(entry[2]);
+                            pitch = Integer.parseInt(entry[3]);
+                            yaw = Integer.parseInt(entry[4]);
 
-                            DJIWaypoint waypoint = new DJIWaypoint(latitude, longitude, altitude);
-                            waypoint.addAction(new DJIWaypoint.DJIWaypointAction(DJIWaypoint.DJIWaypointActionType.GimbalPitch, -90));
-                            waypoint.addAction(new DJIWaypoint.DJIWaypointAction(DJIWaypoint.DJIWaypointActionType.StartTakePhoto, 0));
+                            if(checkCoordinates(latitude, longitude)) {
+                                if(checkPitchYaw(pitch, yaw)) {
+                                    DJIWaypoint waypoint = new DJIWaypoint(latitude, longitude, altitude);
+                                    waypoint.turnMode = DJIWaypoint.DJIWaypointTurnMode.Clockwise;
+                                    waypoint.addAction(new DJIWaypoint.DJIWaypointAction(DJIWaypoint.DJIWaypointActionType.GimbalPitch, pitch));
+                                    waypoint.addAction(new DJIWaypoint.DJIWaypointAction(DJIWaypoint.DJIWaypointActionType.RotateAircraft, yaw));
+                                    waypoint.addAction(new DJIWaypoint.DJIWaypointAction(DJIWaypoint.DJIWaypointActionType.StartTakePhoto, 0));
+                                    waypoint.addAction(new DJIWaypoint.DJIWaypointAction(DJIWaypoint.DJIWaypointActionType.GimbalPitch, 0));
+                                    waypointsList.add(waypoint);
 
-                            waypointsList.add(waypoint);
+                                } else {
+                                    Log.d("checkPitchYaw", "false");
+                                }
+                            } else {
+                                Log.d("checkCoordinates", "false");
+                            }
                         } catch (NumberFormatException e) {
                             e.printStackTrace();
                         }
@@ -126,23 +155,52 @@ public class FlightPath {
 
             if(i == 0) {
                 markerOptions.icon(BitmapDescriptorFactory.defaultMarker(BitmapDescriptorFactory.HUE_GREEN));
-                markerOptions.title("(START) Lat: " + waypoints.get(i).latitude
-                        + " | Lng: " + waypoints.get(i).longitude
-                        + " | Alt: " + waypoints.get(i).altitude );
             } else if(i == waypoints.size() - 1) {
                 markerOptions.icon(BitmapDescriptorFactory.defaultMarker(BitmapDescriptorFactory.HUE_RED));
-                markerOptions.title("(END) Lat: " + waypoints.get(i).latitude
-                        + " | Lng: " + waypoints.get(i).longitude
-                        + " | Alt: " + waypoints.get(i).altitude );
             } else {
                 markerOptions.icon(BitmapDescriptorFactory.defaultMarker(BitmapDescriptorFactory.HUE_AZURE));
-                markerOptions.title("Lat: " + waypoints.get(i).latitude
-                        + " | Lng: " + waypoints.get(i).longitude
-                        + " | Alt: " + waypoints.get(i).altitude );
             }
 
-            markers.add(googleMap.addMarker(markerOptions));
+            markerOptions.title("Waypoint " + (i + 1) + "/" + waypoints.size());
+            markerOptions.snippet("Latitude: " + waypoints.get(i).latitude
+                    + "\n" + "Longitude: " + waypoints.get(i).longitude
+                    + "\n" + "Altitude: " + waypoints.get(i).altitude
+                    + "\n" + "Pitch: " + waypoints.get(i).getActionAtIndex(0).mActionParam
+                    + "\n" + "Yaw: " + waypoints.get(i).getActionAtIndex(1).mActionParam);
+
+            Marker marker = googleMap.addMarker(markerOptions);
+            marker.setTag(waypoints.get(i));
+            markers.add(marker);
         }
+
+        googleMap.setInfoWindowAdapter(new GoogleMap.InfoWindowAdapter() {
+            @Override
+            public View getInfoWindow(Marker marker) {
+                return null;
+            }
+
+            @Override
+            public View getInfoContents(Marker marker) {
+                Context context = mainActivity;
+
+                LinearLayout info = new LinearLayout(mainActivity);
+                info.setOrientation(LinearLayout.VERTICAL);
+
+                TextView title = new TextView(context);
+                title.setTextColor(Color.BLACK);
+                title.setTypeface(null, Typeface.BOLD);
+                title.setText(marker.getTitle());
+
+                TextView snippet = new TextView(context);
+                snippet.setTextColor(Color.GRAY);
+                snippet.setText(marker.getSnippet());
+
+                info.addView(title);
+                info.addView(snippet);
+
+                return info;
+            }
+        });
     }
 
     private void createPolylinePath(List<DJIWaypoint> waypoints, GoogleMap googleMap) {
@@ -179,7 +237,7 @@ public class FlightPath {
     }
 
     public void zoomTo(GoogleMap googleMap) {
-        googleMap.animateCamera(CameraUpdateFactory.newLatLngBounds(getBounds(path), 150));
+        googleMap.animateCamera(CameraUpdateFactory.newLatLngBounds(getBounds(path), 200));
     }
 
     public void startMission(DJIMissionManager missionManager) {
@@ -212,17 +270,26 @@ public class FlightPath {
             final DJIMission.DJIMissionProgressHandler progressHandler = new DJIMission.DJIMissionProgressHandler() {
                 @Override
                 public void onProgress(DJIMission.DJIProgressType type, float progress) {
-                   Log.d("prepareMission", "onProgress (" + type.name() + "): " + progress);
+                    Log.d("prepareMission", "onProgress (" + type.name() + "): " + progress);
                 }
             };
 
             missionManager.prepareMission(waypointMission, progressHandler, new DJICommonCallbacks.DJICompletionCallback() {
                 @Override
                 public void onResult(DJIError error) {
-                    MainActivity.setStartFlightButtonEnabled((error == null));
+                    mainActivity.setStartFlightButtonEnabled((error == null));
+                    mainActivity.setResultToToast("Prepare mission: " + (error == null ? "Success!" : error.getDescription()));
                     Log.d("prepareMission", "onResult: " + (error == null ? "Success!" : error.getDescription()));
                 }
             });
         }
+    }
+
+    private boolean checkCoordinates(double latitude, double longitude) {
+        return (latitude > -90 && latitude < 90 && longitude > -180 && longitude < 180) && (latitude != 0f && longitude != 0f);
+    }
+
+    private boolean checkPitchYaw(int pitch, int yaw) {
+        return ((pitch >= -90 && pitch <= 0) && (yaw >= -180 && yaw <= 180));
     }
 }

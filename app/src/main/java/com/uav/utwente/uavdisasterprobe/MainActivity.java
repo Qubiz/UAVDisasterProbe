@@ -57,9 +57,10 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
 
     private Button loadWaypointsButton;
     private Button mapTypesButton;
-    public static Button startFlightButton;
-    private static Button stopFlightButton;
-    private static Button prepareFlightButton;
+    private Button startFlightButton;
+    private Button stopFlightButton;
+    private Button prepareFlightButton;
+    private Button downloadButton;
 
     private TextView productConnectedTextView;
 
@@ -75,6 +76,8 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
     private double droneLocationLongitude = 181;
 
     FlightPath flightPath;
+
+    private MediaDownload mediaDownload;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -164,6 +167,25 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
             }
         });
 
+        downloadButton = (Button) findViewById(R.id.download_button);
+        downloadButton.setText("DOWNLOAD");
+        downloadButton.setEnabled(true);
+        downloadButton.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                DJIBaseProduct product = UAVDisasterProbeApplication.getProductInstance();
+                if(product != null && product.isConnected()) {
+                    setResultToToast("Trying to download media list...");
+                    if(mediaDownload == null) {
+                        mediaDownload = new MediaDownload();
+                    }
+                    mediaDownload.fetchLatestPhoto();
+                } else {
+                    setResultToToast("No product connected...");
+                }
+            }
+        });
+
         productConnectedTextView = (TextView) findViewById(R.id.product_connected_textview);
         productConnectedTextView.setTextColor(Color.WHITE);
     }
@@ -176,13 +198,13 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
 
         if(product != null) {
             if(product.isConnected()) {
-                productConnectedTextView.setText(UAVDisasterProbeApplication.getProductInstance().getModel() + " connected...");
+                productConnectedTextView.setText(UAVDisasterProbeApplication.getProductInstance().getModel() + " connected");
                 ret = true;
             } else {
                 if(product instanceof DJIAircraft) {
                     DJIAircraft aircraft = (DJIAircraft) product;
                     if(aircraft.getRemoteController() != null && aircraft.getRemoteController().isConnected()) {
-                        productConnectedTextView.setText("Only the RC is connected...");
+                        productConnectedTextView.setText("Only the remote controller is connected");
                         ret = true;
                     }
                 }
@@ -190,7 +212,7 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
         }
 
         if(!ret) {
-            productConnectedTextView.setText("Disconnected...");
+            productConnectedTextView.setText("Disconnected");
         }
     }
 
@@ -246,7 +268,7 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
                 public void onResult(DJIFlightControllerCurrentState state) {
                     droneLocationLatitude = state.getAircraftLocation().getLatitude();
                     droneLocationLongitude = state.getAircraftLocation().getLongitude();
-                    //updateDroneLocation();
+                    // updateDroneLocation();
                 }
             });
         }
@@ -281,7 +303,7 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
         }
     }
 
-    private void setResultToToast(final String string){
+    public void setResultToToast(final String string){
         runOnUiThread(new Runnable() {
             @Override
             public void run() {
@@ -316,7 +338,7 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
                 if(flightPath != null) {
                     flightPath.removeFromMap();
                 }
-                flightPath = new FlightPath(waypointFile);
+                flightPath = new FlightPath(this, waypointFile);
                 flightPath.showOnMap(googleMap);
 
                 DJIBaseProduct product = UAVDisasterProbeApplication.getProductInstance();
@@ -391,15 +413,15 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
         dialog.show();
     }
 
-    public static void setStartFlightButtonEnabled(boolean enabled) {
+    public void setStartFlightButtonEnabled(boolean enabled) {
         startFlightButton.setEnabled(enabled);
     }
 
-    public static void setPrepareFlightButtonEnabled(boolean enabled) {
+    public void setPrepareFlightButtonEnabled(boolean enabled) {
         prepareFlightButton.setEnabled(enabled);
     }
 
-    public static void setStopFlightButtonEnabled(boolean enabled) {
+    public void setStopFlightButtonEnabled(boolean enabled) {
         prepareFlightButton.setEnabled(enabled);
     }
 }
