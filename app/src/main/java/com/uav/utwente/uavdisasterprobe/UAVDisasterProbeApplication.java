@@ -16,10 +16,6 @@ import dji.sdk.base.DJIBaseProduct;
 import dji.sdk.products.DJIAircraft;
 import dji.sdk.sdkmanager.DJISDKManager;
 
-/**
- * Created by mathijs on 9-1-2017.
- */
-
 public class UAVDisasterProbeApplication extends Application {
 
     private static final String TAG = UAVDisasterProbeApplication.class.getName();
@@ -122,10 +118,8 @@ public class UAVDisasterProbeApplication extends Application {
         @Override
         public void onProductConnectivityChanged(boolean isConnected) {
             Log.v(TAG, "onProductConnectivityChanged: " + isConnected);
-
             notifyStatusChange();
         }
-
     };
 
     private DJIBaseComponent.DJIComponentListener mDJIComponentListener = new DJIBaseComponent.DJIComponentListener() {
