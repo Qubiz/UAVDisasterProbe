@@ -60,7 +60,7 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
     private Button startFlightButton;
     private Button stopFlightButton;
     private Button prepareFlightButton;
-    private Button downloadButton;
+    //private Button downloadButton;
 
     private TextView productConnectedTextView;
 
@@ -77,7 +77,7 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
 
     FlightPath flightPath;
 
-    private MediaDownload mediaDownload;
+    // private MediaDownload mediaDownload;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -167,6 +167,7 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
             }
         });
 
+        /*
         downloadButton = (Button) findViewById(R.id.download_button);
         downloadButton.setText("DOWNLOAD");
         downloadButton.setEnabled(true);
@@ -184,7 +185,7 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
                     setResultToToast("No product connected...");
                 }
             }
-        });
+        });*/
 
         productConnectedTextView = (TextView) findViewById(R.id.product_connected_textview);
         productConnectedTextView.setTextColor(Color.WHITE);

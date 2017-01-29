@@ -96,6 +96,7 @@ public class FlightPath {
                                     waypoint.addAction(new DJIWaypoint.DJIWaypointAction(DJIWaypoint.DJIWaypointActionType.StartTakePhoto, 0));
                                     waypoint.addAction(new DJIWaypoint.DJIWaypointAction(DJIWaypoint.DJIWaypointActionType.GimbalPitch, 0));
                                     waypointsList.add(waypoint);
+                                    Log.d("FlightPath", "Created waypoint: " + waypoint.latitude + " | " + waypoint.longitude);
 
                                 } else {
                                     Log.d("checkPitchYaw", "false");

@@ -34,7 +34,7 @@
             android:textStyle="bold">
         </Button>
 
-        <Button
+        <!--<Button
             android:id="@+id/download_button"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
@@ -44,7 +44,7 @@
             android:paddingStart="10dp"
             android:paddingEnd="10dp"
             android:textStyle="bold">
-        </Button>
+        </Button>-->
 
         <LinearLayout
             android:layout_width="wrap_content"
