@@ -8,7 +8,6 @@ import android.content.Intent;
 import android.content.IntentFilter;
 import android.graphics.Color;
 import android.os.Build;
-import android.os.Looper;
 import android.support.v4.app.ActivityCompat;
 import android.support.v7.app.AlertDialog;
 import android.support.v7.app.AppCompatActivity;
@@ -28,27 +27,23 @@ import com.google.android.gms.maps.model.BitmapDescriptorFactory;
 import com.google.android.gms.maps.model.LatLng;
 import com.google.android.gms.maps.model.Marker;
 import com.google.android.gms.maps.model.MarkerOptions;
-import com.opencsv.CSVReader;
-
-import org.w3c.dom.Text;
 
 import java.io.File;
-import java.io.FileReader;
 import java.io.IOException;
 
 import dji.common.error.DJIError;
 import dji.common.flightcontroller.DJIFlightControllerCurrentState;
-import dji.common.flightcontroller.DJISimulatorStateData;
 import dji.common.util.DJICommonCallbacks;
 import dji.sdk.base.DJIBaseProduct;
 import dji.sdk.flightcontroller.DJIFlightController;
 import dji.sdk.flightcontroller.DJIFlightControllerDelegate;
-import dji.sdk.flightcontroller.DJISimulator;
 import dji.sdk.missionmanager.DJIMission;
 import dji.sdk.missionmanager.DJIMissionManager;
-import dji.sdk.missionmanager.DJIWaypointMission;
 import dji.sdk.products.DJIAircraft;
 
+/**
+ * The MainActivity of the application.
+ */
 public class MainActivity extends AppCompatActivity implements OnMapReadyCallback, DJIMissionManager.MissionProgressStatusCallback, DJICommonCallbacks.DJICompletionCallback {
 
     private static final int FILE_REQUEST_CODE = 42;
@@ -66,19 +61,23 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
 
     private DJIFlightController flightController;
     private DJIMissionManager missionManager;
-    private DJIWaypointMission waypointMission;
 
     private GoogleMap googleMap;
-
     private Marker droneMarker;
 
     private double droneLocationLatitude = 181;
     private double droneLocationLongitude = 181;
 
-    FlightPath flightPath;
+    private FlightPath flightPath;
 
     // private MediaDownload mediaDownload;
 
+
+    /**
+     * onCreate(Bundle) is where you initialize your activity. Most importantly, here you will usually
+     * call setContentView(int) with a layout resource defining your UI, and using findViewById(int)
+     * to retrieve the widgets in that UI that you need to interact with programmatically.
+     */
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -185,12 +184,50 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
                     setResultToToast("No product connected...");
                 }
             }
-        });*/
+        });
+        */
 
         productConnectedTextView = (TextView) findViewById(R.id.product_connected_textview);
         productConnectedTextView.setTextColor(Color.WHITE);
     }
 
+    @Override
+    protected void onResume() {
+        super.onResume();
+        initiateFlightController();
+        initiateMissionManager();
+        updateConnectedTextView();
+    }
+
+    @Override
+    protected void onDestroy() {
+        super.onDestroy();
+        unregisterReceiver(receiver);
+    }
+
+    /**
+     * Called when the map is ready to be used.
+     *
+     * @param googleMap A non-null instance of a GoogleMap associated with the MapFragment or MapView that defines the callback.
+     */
+    @Override
+    public void onMapReady(GoogleMap googleMap) {
+        if(this.googleMap == null) {
+            this.googleMap = googleMap;
+        }
+
+        UiSettings uiSettings = this.googleMap.getUiSettings();
+        uiSettings.setMapToolbarEnabled(false);
+        uiSettings.setTiltGesturesEnabled(false);
+        uiSettings.setZoomControlsEnabled(true);
+        uiSettings.setCompassEnabled(false);
+
+        googleMap.setMapType(GoogleMap.MAP_TYPE_SATELLITE);
+    }
+
+    /**
+     * Updates the the status text with the current connection state.
+     */
     private void updateConnectedTextView() {
         if(productConnectedTextView == null) return;
 
@@ -217,6 +254,10 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
         }
     }
 
+    /**
+     * Called when a broadcast is received about a connection change between the application
+     * and the product.
+     */
     protected BroadcastReceiver receiver = new BroadcastReceiver() {
         @Override
         public void onReceive(Context context, Intent intent) {
@@ -226,35 +267,10 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
         }
     };
 
-    @Override
-    protected void onResume() {
-        super.onResume();
-        initiateFlightController();
-        initiateMissionManager();
-        updateConnectedTextView();
-    }
-
-    @Override
-    protected void onDestroy() {
-        super.onDestroy();
-        unregisterReceiver(receiver);
-    }
-
-    @Override
-    public void onMapReady(GoogleMap googleMap) {
-        if(this.googleMap == null) {
-            this.googleMap = googleMap;
-        }
-
-        UiSettings uiSettings = this.googleMap.getUiSettings();
-        uiSettings.setMapToolbarEnabled(false);
-        uiSettings.setTiltGesturesEnabled(false);
-        uiSettings.setZoomControlsEnabled(true);
-        uiSettings.setCompassEnabled(false);
-
-        googleMap.setMapType(GoogleMap.MAP_TYPE_SATELLITE);
-    }
-
+    /**
+     * Called to initiate the flight controller of the aircraft if it is connected. Needs to
+     * be called whenever there is a connection change.
+     */
     private void initiateFlightController() {
         DJIBaseProduct product = UAVDisasterProbeApplication.getProductInstance();
         if(product != null && product.isConnected()) {
@@ -275,6 +291,9 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
         }
     }
 
+    /**
+     * Called to initiate the mission manager. Needs to be called whenever there is a connection change.
+     */
     private void initiateMissionManager() {
         DJIBaseProduct product = UAVDisasterProbeApplication.getProductInstance();
         if(product != null && product.isConnected()) {
@@ -287,10 +306,12 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
             missionManager = null;
             return;
         }
-
-        waypointMission = new DJIWaypointMission();
     }
 
+    /**
+     * Enables or disables the control (prepare, start and stop) buttons depending on whether there
+     * is a connection to the drone and whether there is a flightpath loaded.
+     */
     private void updateButtons() {
         DJIBaseProduct product = UAVDisasterProbeApplication.getProductInstance();
         if(product != null && product.isConnected()) {
@@ -304,6 +325,11 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
         }
     }
 
+    /**
+     * Sends a short message as a 'toast' to the screen.
+     *
+     * @param string The message to display.
+     */
     public void setResultToToast(final String string){
         runOnUiThread(new Runnable() {
             @Override
@@ -323,6 +349,9 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
         setResultToToast("Execution finished: " + (error == null ? "Succes!" : error.getDescription()));
     }
 
+    /**
+     * Called to start a file loader to allow the user to search for a certain file in their system.
+     */
     private void selectWaypointFile() {
         Intent intent = new Intent(Intent.ACTION_GET_CONTENT);
         intent.setType("text/csv");
@@ -331,6 +360,10 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
         }
     }
 
+    /**
+     * Called when the user succesfully selected a file using the file loader. In here the creation of the
+     * flightpath from the CSV file is being done.
+     */
     @Override
     protected void onActivityResult(int requestCode, int resultCode, Intent data) {
         if(requestCode == FILE_REQUEST_CODE && resultCode == RESULT_OK) {
@@ -353,6 +386,10 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
         }
     }
 
+    /**
+     * /!\ This method sometimes makes the application unresponsive to user input /!\
+     * Updates the location of the drone on the map.
+     */
     private void updateDroneLocation() {
         LatLng position = new LatLng(droneLocationLatitude, droneLocationLongitude);
 
@@ -371,11 +408,20 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
         });
     }
 
+    /**
+     * Checks whether the given GPS coordinates are correct.
+     *
+     * @param latitude
+     * @param longitude
+     * @return TRUE if the GPS coordinates are correct, FALSE otherwise.
+     */
     private boolean checkGPSCoordinates(double latitude, double longitude) {
         return (latitude > -90 && latitude < 90 && longitude > -180 && longitude < 180) && (latitude != 0f && longitude != 0f);
     }
 
-
+    /**
+     * Shows a dialog to the user that allows to switch between map types.
+     */
     private void showMapTypeSelectorDialog() {
         AlertDialog.Builder builder = new AlertDialog.Builder(this);
         builder.setTitle("SELECT MAP TYPE");

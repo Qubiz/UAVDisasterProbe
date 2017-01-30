@@ -14,6 +14,13 @@ import dji.sdk.camera.DJICamera;
 import dji.sdk.camera.DJIMedia;
 import dji.sdk.camera.DJIMediaManager;
 
+/**
+ * /!\ DOESN'T WORK CORRECTLY IN THIS VERSION OF THE DJI MOBILE SDK /!\
+ * MediaDownload:
+ *
+ * This class handles the streaming of photo's from the drone to the android device.
+ *
+ */
 public class MediaDownload {
 
     private DJIBaseProduct product;
@@ -28,6 +35,10 @@ public class MediaDownload {
 
     }
 
+    /**
+     * Fetches the last photo taken by the drone.
+     * @return A file containing the photo.
+     */
     public File fetchLatestPhoto() {
         File photo = null;
         if(isMediaManagerAvailable()) {
@@ -70,6 +81,12 @@ public class MediaDownload {
         return photo;
     }
 
+    /**
+     * Fetches media from the drone and downloads it to a location on the android device.
+     *
+     * @param media The media file to fetch.
+     * @param destination The destination for the file to be downloaded to.
+     */
     private void fetchMedia(final DJIMedia media, File destination) {
         downloading = true;
         if(media != null) {
@@ -108,6 +125,9 @@ public class MediaDownload {
         }
     }
 
+    /**
+     * Fetches a list of the media files currently on the SD card of the drone.
+     */
     public void fetchMediaList() {
         downloading = true;
         if(isMediaManagerAvailable()) {
@@ -148,6 +168,9 @@ public class MediaDownload {
         }
     }
 
+    /**
+     * Checks whether the media manager of the drone is available.
+     */
     private boolean isMediaManagerAvailable() {
         product = UAVDisasterProbeApplication.getProductInstance();
         camera = product.getCamera();
@@ -156,7 +179,10 @@ public class MediaDownload {
         return (product != null && camera != null && mediaManager != null);
     }
 
-    public void printMediaList() {
+    /**
+     * Logs the media list.
+     */
+    private void printMediaList() {
         if(mediaList != null) {
             if(!mediaList.isEmpty()) {
                 for(int i = 0; i < mediaList.size(); i++) {
@@ -169,9 +195,4 @@ public class MediaDownload {
             Log.d("MediaDownload", "Media list is null...");
         }
     }
-
-    public ArrayList<DJIMedia> getMediaList() {
-        return mediaList;
-    }
-
 }

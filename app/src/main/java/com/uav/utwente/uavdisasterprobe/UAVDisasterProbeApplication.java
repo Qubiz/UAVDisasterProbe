@@ -16,6 +16,12 @@ import dji.sdk.base.DJIBaseProduct;
 import dji.sdk.products.DJIAircraft;
 import dji.sdk.sdkmanager.DJISDKManager;
 
+/**
+ * UAVDisasterProbeApplication:
+ *
+ * Base class for maintaining global application state. This class is the entry point of the
+ * application and therefore used to instantiate the base components.
+ */
 public class UAVDisasterProbeApplication extends Application {
 
     private static final String TAG = UAVDisasterProbeApplication.class.getName();
@@ -30,25 +36,28 @@ public class UAVDisasterProbeApplication extends Application {
         return getProductInstance() != null && getProductInstance() instanceof DJIAircraft;
     }
 
-    public static synchronized DJIAircraft getAircraftInstance() {
-        if (!isAircraftConnected()) return null;
-        return (DJIAircraft) getProductInstance();
-    }
-
+    /**
+     * This method is used to retrieve a static instance of the connected product, which
+     * allows the user to get an instance of various components.
+     *
+     * @return A new DJIBaseProduct instance.
+     */
     public static synchronized DJIBaseProduct getProductInstance() {
-        if (null == product) {
+        if (product == null) {
             product = DJISDKManager.getInstance().getDJIProduct();
         }
         return product;
     }
 
+    /**
+     * Called when the application is starting, before any activity, service, or receiver objects
+     * (excluding content providers) have been created.
+     */
     @Override
     public void onCreate() {
         super.onCreate();
-
         handler = new Handler(Looper.getMainLooper());
         DJISDKManager.getInstance().initSDKManager(this, mDJISDKManagerCallback);
-
     }
 
     protected void attachBaseContext(Context base){
@@ -56,17 +65,16 @@ public class UAVDisasterProbeApplication extends Application {
         MultiDex.install(base);
     }
 
+    /**
+     * Used to register the SDK using the developer key defined in the AndroidManifest.
+     */
     private DJISDKManager.DJISDKManagerCallback mDJISDKManagerCallback = new DJISDKManager.DJISDKManagerCallback() {
-
         @Override
         public void onGetRegisteredResult(DJIError error) {
-
             Handler handler = new Handler(Looper.getMainLooper());
-
             Log.d(TAG, error == null ? "success" : error.getDescription());
             if(error == DJISDKError.REGISTRATION_SUCCESS) {
                 DJISDKManager.getInstance().startConnectionToProduct();
-
                 handler.post(new Runnable() {
 
                     @Override
@@ -75,7 +83,6 @@ public class UAVDisasterProbeApplication extends Application {
                     }
                 });
                 Log.d(TAG, "Register success");
-
             } else {
                 handler.post(new Runnable() {
 
@@ -84,9 +91,7 @@ public class UAVDisasterProbeApplication extends Application {
                         Toast.makeText(getApplicationContext(), "register sdk fails, check network is available", Toast.LENGTH_LONG).show();
                     }
                 });
-
                 Log.d(TAG, "Register failed");
-
             }
             Log.e(TAG, error == null ? "success" : error.getDescription());
         }
@@ -103,8 +108,10 @@ public class UAVDisasterProbeApplication extends Application {
         }
     };
 
+    /**
+     * Used to listen to product connection changes.
+     */
     private DJIBaseProduct.DJIBaseProductListener mDJIBaseProductListener = new DJIBaseProduct.DJIBaseProductListener() {
-
         @Override
         public void onComponentChange(DJIBaseProduct.DJIComponentKey key, DJIBaseComponent oldComponent, DJIBaseComponent newComponent) {
             if(newComponent != null) {
@@ -131,11 +138,17 @@ public class UAVDisasterProbeApplication extends Application {
 
     };
 
+    /**
+     * Called to send a notification to other classes about a status change.
+     */
     private void notifyStatusChange() {
         handler.removeCallbacks(updateRunnable);
         handler.postDelayed(updateRunnable, 500);
     }
 
+    /**
+     * Runnable that broadcasts a connection change to other classes.
+     */
     private Runnable updateRunnable = new Runnable() {
 
         @Override

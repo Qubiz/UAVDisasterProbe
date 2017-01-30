@@ -1,12 +1,9 @@
 package com.uav.utwente.uavdisasterprobe;
 
-import android.app.AlertDialog;
 import android.content.Context;
-import android.content.DialogInterface;
 import android.graphics.Color;
 import android.graphics.Typeface;
 import android.util.Log;
-import android.view.Gravity;
 import android.view.View;
 import android.widget.LinearLayout;
 import android.widget.TextView;
@@ -35,19 +32,40 @@ import dji.sdk.missionmanager.DJIMissionManager;
 import dji.sdk.missionmanager.DJIWaypoint;
 import dji.sdk.missionmanager.DJIWaypointMission;
 
+/**
+ * FlightPath:
+ *
+ * This class is used to
+ * (1) create a flightpath from a CSV file,
+ * (2) show the flightpath on a GoogleMap,
+ * (3) prepare, start and stop the flight.
+ */
 public class FlightPath {
-
+    // A list of markers defining the waypoints on the map.
     private ArrayList<Marker> markers;
+
+    // A line to show the path the drone will fly.
     private Polyline path;
 
+    // A list of waypoints that can be put into a mission.
     private ArrayList<DJIWaypoint> waypointsList;
 
+    // The mission that will be uploaded to the aircraft.
     private DJIWaypointMission waypointMission;
 
+    // The file containing the waypoints, needs to be a CSV file with the correct format.
     private File waypointFile;
 
+    // A reference to the MainActivity, used to change the status of the buttons on the interface.
     private MainActivity mainActivity;
 
+    /**
+     * Creates a new flight path using the given waypoint file.
+     *
+     * @param mainActivity A reference to the MainActivity.
+     * @param waypointFile The waypoint file to read.
+     * @throws IOException
+     */
     public FlightPath(MainActivity mainActivity, File waypointFile) throws IOException {
         this.mainActivity = mainActivity;
         this.waypointFile = waypointFile;
@@ -55,9 +73,20 @@ public class FlightPath {
         waypointMission = new DJIWaypointMission();
         waypointMission.finishedAction = DJIWaypointMission.DJIWaypointMissionFinishedAction.GoHome;
         waypointMission.headingMode = DJIWaypointMission.DJIWaypointMissionHeadingMode.Auto;
+        waypointMission.autoFlightSpeed = 10.0f;
         readFromFile(waypointFile);
     }
 
+    /**
+     * Reads the given file and prepares a list of waypoints.
+     *
+     * While reading the file it checks whether the header of the file is correctly
+     * formatted as: 'latitide;longitude;altitude;pitch'. It then proceeds with reading the
+     * values of the file.
+     *
+     * @param waypointFile The waypoint file to read.
+     * @throws IOException
+     */
     private void readFromFile(File waypointFile) throws IOException {
         CSVReader reader = new CSVReader(new FileReader(waypointFile.getPath()), ';');
 
@@ -69,25 +98,32 @@ public class FlightPath {
 
         int count = 0;
 
+        // Read all the entries of the CSV file.
         List<String[]> entries = reader.readAll();
 
+        // Checks whether the header of the file is correct.
         if(entries.get(0)[0].substring(1).equals("latitude")
                 && entries.get(0)[1].equals("longitude")
                 && entries.get(0)[2].equals("altitude")
                 && entries.get(0)[3].equals("pitch")
                 && entries.get(0)[4].equals("yaw")) {
-            Log.d("Header", "The header of the file is correct!");
+            Log.d("FlightPath", "readFromFile | The header of the file is correct!");
+            // Iterate through all the entries one by one.
             for(String[] entry : entries) {
                 if(count != 0) {
+                    // Check whether there are 5 values in the row.
                     if(entry.length == 5) {
                         try {
+                            // Parse all the values.
                             latitude = Double.parseDouble(entry[0]);
                             longitude = Double.parseDouble(entry[1]);
                             altitude = Float.parseFloat(entry[2]);
                             pitch = Integer.parseInt(entry[3]);
                             yaw = Integer.parseInt(entry[4]);
 
+                            // Check whether the coordinate values are correct.
                             if(checkCoordinates(latitude, longitude)) {
+                                // Check whether the pitch and yaw values are correct
                                 if(checkPitchYaw(pitch, yaw)) {
                                     DJIWaypoint waypoint = new DJIWaypoint(latitude, longitude, altitude);
                                     waypoint.turnMode = DJIWaypoint.DJIWaypointTurnMode.Clockwise;
@@ -96,35 +132,51 @@ public class FlightPath {
                                     waypoint.addAction(new DJIWaypoint.DJIWaypointAction(DJIWaypoint.DJIWaypointActionType.StartTakePhoto, 0));
                                     waypoint.addAction(new DJIWaypoint.DJIWaypointAction(DJIWaypoint.DJIWaypointActionType.GimbalPitch, 0));
                                     waypointsList.add(waypoint);
-                                    Log.d("FlightPath", "Created waypoint: " + waypoint.latitude + " | " + waypoint.longitude);
-
+                                    Log.d("FlightPath", "readFromFile | Created waypoint: " + waypoint.latitude + " | " + waypoint.longitude);
                                 } else {
-                                    Log.d("checkPitchYaw", "false");
+                                    //!\\ ERROR SHOULD BE HANDLED BETTER //!\\
+                                    // TODO: Show the user which entry in the CSV file is incorrect and stop reading the file.
+                                    Log.d("FlightPath", "readFromFile | Pitch and yaw values incorrect.");
                                 }
                             } else {
-                                Log.d("checkCoordinates", "false");
+                                //!\\ ERROR SHOULD BE HANDLED BETTER //!\\
+                                // TODO: Show the user which entry in the CSV file is incorrect and stop reading the file.
+                                Log.d("FlightPath", "readFromFile | Coordinates incorrect.");
                             }
                         } catch (NumberFormatException e) {
                             e.printStackTrace();
                         }
                     } else {
-                        Log.d("Header", "Error at entry '" + count + "': all entries should have three parameters (latitude, longitude and altitude)!");
+                        //!\\ ERROR SHOULD BE HANDLED BETTER //!\\
+                        // TODO: Show the user which entry in the CSV file is incorrect and stop reading the file.
+                        Log.d("FlightPath", "readFromFile | Error at entry '" + count + "': all entries should have five parameters (latitude, longitude, altitude, pitch and yaw)!");
                     }
                 }
                 count++;
             }
         } else {
-            Log.d("Header", "The header of the file is NOT correct!");
+            Log.d("FlightPath", "readFromFile | The header of the file is NOT correct!");
         }
     }
 
+    /**
+     * Called to show the flightpath on the map by creating waypoints and a line to show the path.
+     * This also makes the GoogleMap view zoom to the location of the flightpath.
+     * @param googleMap
+     */
     public void showOnMap(GoogleMap googleMap) {
-        createWaypoints(waypointsList, googleMap);
+        createMarkers(waypointsList, googleMap);
         createPolylinePath(waypointsList, googleMap);
 
         zoomTo(googleMap);
     }
 
+    /**
+     * Determines a bounding box around the given path. Used to determine the size of the GoogleMap
+     * view when zooming in.
+     * @param path The path to create a bounding box around.
+     * @return
+     */
     private LatLngBounds getBounds(Polyline path) {
         double minLatitude = path.getPoints().get(0).latitude;
         double maxLatitude = path.getPoints().get(0).latitude;
@@ -141,7 +193,14 @@ public class FlightPath {
         return new LatLngBounds(new LatLng(minLatitude, minLongitude), new LatLng(maxLatitude, maxLongitude));
     }
 
-    private void createWaypoints(List<DJIWaypoint> waypoints, GoogleMap googleMap) {
+    /**
+     * Creates markers to show the waypoints on the map. The markers are clickable and show the
+     * details (lat, long, alt, pitch and yaw) of the waypoints.
+     *
+     * @param waypoints The waypoints list containing the locations for the markers.
+     * @param googleMap The GoogleMap reference to show the markers on.
+     */
+    private void createMarkers(List<DJIWaypoint> waypoints, GoogleMap googleMap) {
         if(markers == null) {
             markers = new ArrayList<>();
         } else {
@@ -150,13 +209,14 @@ public class FlightPath {
             }
         }
 
+
         for(int i = 0; i < waypoints.size(); i++) {
             LatLng point = new LatLng(waypoints.get(i).latitude, waypoints.get(i).longitude);
             MarkerOptions markerOptions = new MarkerOptions().position(point);
 
-            if(i == 0) {
+            if(i == 0) { // START POINT OF THE FLIGHT PATH
                 markerOptions.icon(BitmapDescriptorFactory.defaultMarker(BitmapDescriptorFactory.HUE_GREEN));
-            } else if(i == waypoints.size() - 1) {
+            } else if(i == waypoints.size() - 1) { // END POINT OF THE FLIGHT PATH
                 markerOptions.icon(BitmapDescriptorFactory.defaultMarker(BitmapDescriptorFactory.HUE_RED));
             } else {
                 markerOptions.icon(BitmapDescriptorFactory.defaultMarker(BitmapDescriptorFactory.HUE_AZURE));
@@ -174,6 +234,7 @@ public class FlightPath {
             markers.add(marker);
         }
 
+        // Set a custom window adapter to show a multiline snippet to the user when they click on a marker.
         googleMap.setInfoWindowAdapter(new GoogleMap.InfoWindowAdapter() {
             @Override
             public View getInfoWindow(Marker marker) {
@@ -204,6 +265,12 @@ public class FlightPath {
         });
     }
 
+    /**
+     * Creates a line on the map that represents the path the drone will fly.
+     *
+     * @param waypoints The list of waypoints.
+     * @param googleMap The GoogleMap reference to show the path on.
+     */
     private void createPolylinePath(List<DJIWaypoint> waypoints, GoogleMap googleMap) {
         if(path != null) {
             path.remove();
@@ -223,6 +290,9 @@ public class FlightPath {
         path = googleMap.addPolyline(polylineOptions);
     }
 
+    /**
+     * Removes the flight path from the map.
+     */
     public void removeFromMap() {
         if(markers == null) {
             markers = new ArrayList<>();
@@ -237,10 +307,18 @@ public class FlightPath {
         }
     }
 
+    /**
+     * Zooms the camera the the flight path.
+     * @param googleMap The GoogleMap reference.
+     */
     public void zoomTo(GoogleMap googleMap) {
         googleMap.animateCamera(CameraUpdateFactory.newLatLngBounds(getBounds(path), 200));
     }
 
+    /**
+     * Called to start the mission. Should be called after prepareMission is succesfully called.
+     * @param missionManager
+     */
     public void startMission(DJIMissionManager missionManager) {
         if(missionManager != null) {
             missionManager.startMissionExecution(new DJICommonCallbacks.DJICompletionCallback() {
@@ -252,6 +330,10 @@ public class FlightPath {
         }
     }
 
+    /**
+     * Called to stop the mission.
+     * @param missionManager
+     */
     public void stopMission(DJIMissionManager missionManager) {
         if(missionManager != null) {
             missionManager.stopMissionExecution(new DJICommonCallbacks.DJICompletionCallback() {
@@ -264,6 +346,10 @@ public class FlightPath {
         }
     }
 
+    /**
+     * Called to prepare the mission. It uploads the flightpath to the drone.
+     * @param missionManager An instance of the mission manager of the drone.
+     */
     public void prepareMission(DJIMissionManager missionManager) {
         if(missionManager != null && waypointMission != null) {
             waypointMission.removeAllWaypoints();
