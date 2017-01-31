@@ -58,6 +58,7 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
     //private Button downloadButton;
 
     private TextView productConnectedTextView;
+    private TextView loadedFileTextView;
 
     private DJIFlightController flightController;
     private DJIMissionManager missionManager;
@@ -190,6 +191,9 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
 
         productConnectedTextView = (TextView) findViewById(R.id.product_connected_textview);
         productConnectedTextView.setTextColor(Color.WHITE);
+
+        loadedFileTextView = (TextView) findViewById(R.id.loaded_file_textview);
+        loadedFileTextView.setTextColor(Color.WHITE);
     }
 
     @Override
@@ -380,6 +384,7 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
                     prepareFlightButton.setEnabled(true);
                 }
                 setResultToToast("Loaded file: " + waypointFile.getName());
+                loadedFileTextView.setText(waypointFile.getName());
             } catch (IOException e) {
                 e.printStackTrace();
             }
@@ -435,18 +440,22 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
                     case 0:
                         googleMap.setMapType(GoogleMap.MAP_TYPE_NORMAL);
                         productConnectedTextView.setTextColor(Color.BLACK);
+                        loadedFileTextView.setTextColor(Color.BLACK);
                         break;
                     case 1:
                         googleMap.setMapType(GoogleMap.MAP_TYPE_SATELLITE);
                         productConnectedTextView.setTextColor(Color.WHITE);
+                        loadedFileTextView.setTextColor(Color.WHITE);
                         break;
                     case 2:
                         googleMap.setMapType(GoogleMap.MAP_TYPE_TERRAIN);
                         productConnectedTextView.setTextColor(Color.BLACK);
+                        loadedFileTextView.setTextColor(Color.BLACK);
                         break;
                     default:
                         googleMap.setMapType(GoogleMap.MAP_TYPE_HYBRID);
                         productConnectedTextView.setTextColor(Color.WHITE);
+                        loadedFileTextView.setTextColor(Color.WHITE);
                         break;
                 }
 
