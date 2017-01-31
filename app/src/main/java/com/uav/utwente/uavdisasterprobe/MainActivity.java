@@ -132,9 +132,9 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
             public void onClick(View v) {
                 setResultToToast("Starting flight..");
                 flightPath.startMission(missionManager);
-                stopFlightButton.setEnabled(true);
+                /*stopFlightButton.setEnabled(true);
                 startFlightButton.setEnabled(false);
-                prepareFlightButton.setEnabled(false);
+                prepareFlightButton.setEnabled(false);*/
             }
         });
 
@@ -146,10 +146,11 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
             public void onClick(View v) {
                 setResultToToast("Stopping flight..");
                 flightPath.stopMission(missionManager);
-                stopFlightButton.setEnabled(false);
+                /*stopFlightButton.setEnabled(false);
                 if(flightPath != null) {
                     prepareFlightButton.setEnabled(true);
-                }
+                }*/
+                //updateButtons();
             }
         });
 
@@ -161,7 +162,7 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
             public void onClick(View v) {
                 setResultToToast("Preparing flight..");
                 flightPath.prepareMission(missionManager);
-                startFlightButton.setEnabled(true);
+                //startFlightButton.setEnabled(true);
 
             }
         });
@@ -263,7 +264,6 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
         public void onReceive(Context context, Intent intent) {
             initiateFlightController();
             updateConnectedTextView();
-            updateButtons();
         }
     };
 
@@ -285,7 +285,7 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
                 public void onResult(DJIFlightControllerCurrentState state) {
                     droneLocationLatitude = state.getAircraftLocation().getLatitude();
                     droneLocationLongitude = state.getAircraftLocation().getLongitude();
-                    // updateDroneLocation();
+                    //updateDroneLocation();
                 }
             });
         }
@@ -304,7 +304,6 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
         } else {
             setResultToToast("Product not connected...");
             missionManager = null;
-            return;
         }
     }
 
@@ -347,6 +346,7 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
     @Override
     public void onResult(DJIError error) {
         setResultToToast("Execution finished: " + (error == null ? "Succes!" : error.getDescription()));
+        flightPath.stopMission(missionManager);
     }
 
     /**
@@ -460,15 +460,32 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
         dialog.show();
     }
 
-    public void setStartFlightButtonEnabled(boolean enabled) {
-        startFlightButton.setEnabled(enabled);
+    public void setStartFlightButtonEnabled(final boolean enabled) {
+        runOnUiThread(new Runnable() {
+            @Override
+            public void run() {
+                startFlightButton.setEnabled(enabled);
+            }
+        });
+
     }
 
-    public void setPrepareFlightButtonEnabled(boolean enabled) {
-        prepareFlightButton.setEnabled(enabled);
+    public void setPrepareFlightButtonEnabled(final boolean enabled) {
+        runOnUiThread(new Runnable() {
+            @Override
+            public void run() {
+                prepareFlightButton.setEnabled(enabled);
+            }
+        });
+
     }
 
-    public void setStopFlightButtonEnabled(boolean enabled) {
-        prepareFlightButton.setEnabled(enabled);
+    public void setStopFlightButtonEnabled(final boolean enabled) {
+        runOnUiThread(new Runnable() {
+            @Override
+            public void run() {
+                stopFlightButton.setEnabled(enabled);
+            }
+        });
     }
 }

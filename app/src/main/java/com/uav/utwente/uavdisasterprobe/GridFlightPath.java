@@ -12,53 +12,78 @@ import com.google.android.gms.maps.model.PolylineOptions;
 import java.util.ArrayList;
 
 /**
- * Created by User on 12-1-2017.
+ * GridFlightPath
+ *
+ * This class is used to create a grid flight used to take pictures of an square area
  */
 
 public class GridFlightPath {
-
+    //The square that is drawn by the user to define the area the drone makes pictures of
     private ResizableRectangle rectangle;
+    // the line of the flightpath that is added to the map
     private Polyline flightPath;
-    //private ArrayList<LatLng> rectanglePoints = new ArrayList();
+    // focal length is used to determine the flight height
     private double focalLength = 4.0;
+    // pixelsize is used to determine the flight height
     private double pixelSize = 0.00152;
+    // the GSD is the size of a pixel on the real ground in meters
     private double GSD = 0.03;
-    private float distanceBorder = 5; // in meters
+    // used to determine the position of the first line of pictures from the edge in meters
+    private float distanceBorder = 5;
+    // used to determine if the rectangle is longer to the side or going up
     private boolean sideways;
+    //is the amount of line the path makes on the small side of the square
     private int NFL;
+    //is the amount of line the path makes on the long side of the square
     private int NIM;
+    // the total distance of the side square in longitude degree
     private double totallongitude;
+    //the total distance of the side square in latitude degree
     private double totallatitude;
+    //is the object that is used as the background of the app
     private GoogleMap gMap;
-    private ArrayList<LatLng> poliline ;
+    //is the list of all the points the drone will go through
+    private ArrayList<LatLng> polyline ;
 
+    /**
+     * creates a new GridflightPath object
+     *
+     *@param rectangle the square used to create the grid path
+     *@param googleMap the map to draw on
+     */
     public GridFlightPath(ResizableRectangle rectangle, GoogleMap googleMap){
         this.gMap = googleMap;
         this.create(rectangle);
     }
+    /**
+     * creates a list of point that make up the grid fligth path
+     *
+     * @param rectanglePoints the points used to determine the square the user has drawn.
+     * @return the polyline that can be drawn on the google maps element
+     */
     public ArrayList<LatLng> createFlightpoints(ArrayList<LatLng> rectanglePoints){
-        poliline = new ArrayList<>();
-        poliline.add(new LatLng(rectanglePoints.get(0).latitude, rectanglePoints.get(0).longitude));
+        polyline = new ArrayList<>();
+        polyline.add(new LatLng(rectanglePoints.get(0).latitude, rectanglePoints.get(0).longitude));
         for (int j = 0; j<NFL;j++) {
             if (sideways) {
                 double distance = totallongitude / NIM;
                 double sideway = totallatitude / NFL;
                 for (int i = 0; i < NIM; i++) {
-                    poliline.add(new LatLng(poliline.get(poliline.size() - 1).latitude, poliline.get(poliline.size() - 1).longitude + distance));
+                    polyline.add(new LatLng(polyline.get(polyline.size() - 1).latitude, polyline.get(polyline.size() - 1).longitude + distance));
                 }
                 if(j<NFL) {
-                    poliline.add(new LatLng(poliline.get(poliline.size() - 1).latitude + sideway, poliline.get(poliline.size() - 1).longitude));
+                    polyline.add(new LatLng(polyline.get(polyline.size() - 1).latitude + sideway, polyline.get(polyline.size() - 1).longitude));
                 }
                 j++;
                 for (int i = 0; i < NIM; i++) {
-                    poliline.add(new LatLng(poliline.get(poliline.size() - 1).latitude, poliline.get(poliline.size() - 1).longitude - distance));
+                    polyline.add(new LatLng(polyline.get(polyline.size() - 1).latitude, polyline.get(polyline.size() - 1).longitude - distance));
                 }
                 if(j<NFL) {
-                    poliline.add(new LatLng(poliline.get(poliline.size() - 1).latitude + sideway, poliline.get(poliline.size() - 1).longitude));
+                    polyline.add(new LatLng(polyline.get(polyline.size() - 1).latitude + sideway, polyline.get(polyline.size() - 1).longitude));
                 }
                 if(j==(NFL-1)){
                     for (int i = 0; i < NIM; i++) {
-                        poliline.add(new LatLng(poliline.get(poliline.size() - 1).latitude, poliline.get(poliline.size() - 1).longitude + distance));
+                        polyline.add(new LatLng(polyline.get(polyline.size() - 1).latitude, polyline.get(polyline.size() - 1).longitude + distance));
                     }
                 }
 
@@ -66,38 +91,44 @@ public class GridFlightPath {
                 double distance = totallatitude/ NIM;
                 double sideway = totallongitude / NFL;
                 for (int i = 0; i < NIM; i++) {
-                    poliline.add(new LatLng(poliline.get(poliline.size() - 1).latitude + distance, poliline.get(poliline.size() - 1).longitude));
+                    polyline.add(new LatLng(polyline.get(polyline.size() - 1).latitude + distance, polyline.get(polyline.size() - 1).longitude));
                     //Log.d("createFlightPath", "eerst breedte");
                 }
                 if(j<NFL) {
-                    poliline.add(new LatLng(poliline.get(poliline.size() - 1).latitude, poliline.get(poliline.size() - 1).longitude + sideway));
+                    polyline.add(new LatLng(polyline.get(polyline.size() - 1).latitude, polyline.get(polyline.size() - 1).longitude + sideway));
 
                     float[] result3 = new float[1];
-                    Location.distanceBetween(poliline.get(poliline.size()-1).latitude, poliline.get(poliline.size()-1).longitude, poliline.get(poliline.size()-2).latitude, poliline.get(poliline.size()-2).longitude, result3);
+                    Location.distanceBetween(polyline.get(polyline.size()-1).latitude, polyline.get(polyline.size()-1).longitude, polyline.get(polyline.size()-2).latitude, polyline.get(polyline.size()-2).longitude, result3);
                 }
                 j++;
                 for (int i = 0; i < NIM; i++) {
-                    poliline.add(new LatLng(poliline.get(poliline.size() - 1).latitude - distance, poliline.get(poliline.size() - 1).longitude));
+                    polyline.add(new LatLng(polyline.get(polyline.size() - 1).latitude - distance, polyline.get(polyline.size() - 1).longitude));
                 }
                 if(j<NFL) {
-                    poliline.add(new LatLng(poliline.get(poliline.size() - 1).latitude, poliline.get(poliline.size() - 1).longitude + sideway));
+                    polyline.add(new LatLng(polyline.get(polyline.size() - 1).latitude, polyline.get(polyline.size() - 1).longitude + sideway));
 
                     float[] result3 = new float[1];
-                    Location.distanceBetween(poliline.get(poliline.size()-1).latitude, poliline.get(poliline.size()-1).longitude, poliline.get(poliline.size()-2).latitude, poliline.get(poliline.size()-2).longitude, result3);
+                    Location.distanceBetween(polyline.get(polyline.size()-1).latitude, polyline.get(polyline.size()-1).longitude, polyline.get(polyline.size()-2).latitude, polyline.get(polyline.size()-2).longitude, result3);
                 }
                 if(j==(NFL-1)){
                     for (int i = 0; i < NIM; i++) {
-                        poliline.add(new LatLng(poliline.get(poliline.size() - 1).latitude + distance, poliline.get(poliline.size() - 1).longitude));
+                        polyline.add(new LatLng(polyline.get(polyline.size() - 1).latitude + distance, polyline.get(polyline.size() - 1).longitude));
                     }
                 }
             }
         }
-        return poliline;
+        return polyline;
 
 
 
 
     }
+
+    /**
+     * sets the flight details like the NFL and the NIM
+     * @param rectanglePoints the corner points of the square
+     */
+
     private void setFlightdetails(ArrayList<LatLng> rectanglePoints){
         double rectangleWidth;
         double rectangleLength;
@@ -123,9 +154,22 @@ public class GridFlightPath {
         double B = imageLength*(100-75)/100;
         NIM = (int) ((rectangleLength/B)+2);
     }
-    public double getFlightHeigth(){
+    /**
+     * returns the flight higth
+     * @return flight higth in meters.
+     */
+
+    public double getFlightHigth(){
         return GSD*focalLength/pixelSize;
     }
+
+    /**
+     * the makes the flight path a bit smaller because the aircraft doesn't need to fly over the
+     * borders. because the image is wider than the flight path.
+     * @param rectanglePoints the corners of the original square
+     * @param distanceBorder the distance between the the original square and the area the drone flies over
+     * @return a list of the new corners for the area the drone flies over
+     */
 
     private ArrayList<LatLng> adjustBorder(ArrayList<LatLng> rectanglePoints, double distanceBorder){
 
@@ -143,26 +187,45 @@ public class GridFlightPath {
         rectanglePoints.set(3,new LatLng(rectanglePoints.get(3).latitude-latBorderChange, rectanglePoints.get(3).longitude+LngBorderChange));
         return rectanglePoints;
     }
+
+    /**
+     * used to get the drawable object of the grid flight
+     * @return a polyline that can be drawn on a google maps instance
+     */
     public ArrayList<LatLng> getFlightPath(){
-        return poliline;
+        return polyline;
     }
 
+    /**
+     * Creates the grid flight path and draws on the google maps instance
+     * @param rectangle the original rectangle drawn on the map.
+     */
     public void create(ResizableRectangle rectangle){
         ArrayList<LatLng> rectanglePoints = rectangle.getCornerCoordinates();
         rectanglePoints = adjustBorder(rectanglePoints, distanceBorder);
         setFlightdetails(rectanglePoints);
-        Log.d("flightHigth", " "+this.getFlightHeigth() );
+        Log.d("flightHigth", " "+this.getFlightHigth() );
         ArrayList<LatLng> flightpoints = new ArrayList<>(createFlightpoints(rectanglePoints));
         flightPath = gMap.addPolyline(new PolylineOptions()
                 .addAll(flightpoints)
                 .color(Color.RED));
     }
+
+    /**
+     * removes the flight path
+     */
     public void remove(){
         flightPath.remove();
     }
+
+    /**
+     * Updates the flightpath given a new rectangle
+     * @param rectangle the new rectangle drawn by the user
+     */
     public void update(ResizableRectangle rectangle){
         flightPath.remove();
         create(rectangle);
 
     }
 }
+

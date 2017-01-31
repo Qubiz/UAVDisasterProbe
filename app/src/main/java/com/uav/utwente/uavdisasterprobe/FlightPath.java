@@ -325,6 +325,17 @@ public class FlightPath {
                 @Override
                 public void onResult(DJIError error) {
                     Log.d("startMission", "onResult: " + (error == null ? "Succes!" : error.getDescription()));
+                    if(error == null) {
+                        Log.d("startMission", "onResult: " + "wtf??");
+                        mainActivity.setStopFlightButtonEnabled(true);
+                        mainActivity.setStartFlightButtonEnabled(false);
+                        mainActivity.setPrepareFlightButtonEnabled(false);
+                    } else {
+                        Log.d("startMission", "onResult: " + "OK...??");
+                        mainActivity.setStartFlightButtonEnabled(false);
+                        mainActivity.setStartFlightButtonEnabled(false);
+                        mainActivity.setPrepareFlightButtonEnabled(true);
+                    }
                 }
             });
         }
@@ -339,6 +350,9 @@ public class FlightPath {
             missionManager.stopMissionExecution(new DJICommonCallbacks.DJICompletionCallback() {
                 @Override
                 public void onResult(DJIError error) {
+                    mainActivity.setPrepareFlightButtonEnabled(true);
+                    mainActivity.setStartFlightButtonEnabled(false);
+                    mainActivity.setStopFlightButtonEnabled(false);
                     Log.d("stopMission", "onResult: " + (error == null ? "Succes!" : error.getDescription()));
                 }
             });
@@ -364,7 +378,15 @@ public class FlightPath {
             missionManager.prepareMission(waypointMission, progressHandler, new DJICommonCallbacks.DJICompletionCallback() {
                 @Override
                 public void onResult(DJIError error) {
-                    mainActivity.setStartFlightButtonEnabled((error == null));
+                    if(error == null) {
+                        mainActivity.setStartFlightButtonEnabled(true);
+                        mainActivity.setPrepareFlightButtonEnabled(false);
+                        mainActivity.setStopFlightButtonEnabled(false);
+                    } else{
+                        mainActivity.setStartFlightButtonEnabled(false);
+                        mainActivity.setPrepareFlightButtonEnabled(true);
+                        mainActivity.setStopFlightButtonEnabled(false);
+                    }
                     mainActivity.setResultToToast("Prepare mission: " + (error == null ? "Success!" : error.getDescription()));
                     Log.d("prepareMission", "onResult: " + (error == null ? "Success!" : error.getDescription()));
                 }
